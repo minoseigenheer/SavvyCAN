@@ -694,7 +694,7 @@ QVariant CommFrameModel::data(const QModelIndex &index, int role) const
                     if (msg->comment.length() > 1) tempString.append(msg->comment + "\n");
 
                     QList<DBC_SIGNAL *> sigs = msg->sigHandler->getSignalsAsList();
-
+                    std::map<DBC_SIGNAL, QString> displayValues;
                     for (int j = 0; j < msg->sigHandler->getCount(); j++)
                     {                        
                         QString sigString;
@@ -702,21 +702,24 @@ QVariant CommFrameModel::data(const QModelIndex &index, int role) const
 
                         if ( (sig->multiplexParent == nullptr) && sig->processAsText(thisFrame, sigString))
                         {
-                            tempString.append(sigString);
-                            tempString.append("\n");
+                            displayValues.emplace(*sig, sigString);
                             if (sig->isMultiplexor)
                             {
                                 qDebug() << "Multiplexor. Diving into the tree";
-                                tempString.append(sig->processSignalTree(thisFrame));
+                                sig->processAvailableSignals(thisFrame, displayValues);
                             }
                         }
                         else if (sig->isMultiplexed && overwriteDups) //wasn't in this exact frame but is in the message. Use cached value
                         {
                             bool isInteger = false;
                             if (sig->valType == UNSIGNED_INT || sig->valType == SIGNED_INT) isInteger = true;
-                            tempString.append(sig->makePrettyOutput(sig->cachedValue.toDouble(), sig->cachedValue.toLongLong(), true, isInteger));
-                            tempString.append("\n");
+                            displayValues.emplace(*sig, sig->makePrettyOutput(sig->cachedValue.toDouble(), sig->cachedValue.toLongLong(), true, isInteger));
                         }
+                    }
+
+                    for (const auto &kv: displayValues) {
+                        tempString.append(kv.second);
+                        tempString.append("\n");
                     }
                 }
             }
