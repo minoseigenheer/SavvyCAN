@@ -112,6 +112,7 @@ private slots:
     void gridContextMenuRequest(QPoint pos);
     void setupAddToNewGraph();
     void setupSendToLatestGraphWindow();
+    void interpretAutoScroll(bool);
     void interpretToggled(bool);
     void overwriteToggled(bool);
     void presistentFiltersToggled(bool state);
@@ -160,6 +161,7 @@ private:
     int rxFrames;
     bool inhibitFilterUpdate;
     bool useHex;
+    bool useHexAndDec;
     bool allowCapture;
     bool ignoreDBCColors;
     bool CSVAbsTime;

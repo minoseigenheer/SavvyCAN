@@ -40,7 +40,11 @@ int CANFrameModel::totalFrameCount()
 int CANFrameModel::columnCount(const QModelIndex &index) const
 {
     Q_UNUSED(index);
-    return (int)Column::NUM_COLUMN;
+
+    if(useHexAndDecMode)
+        return (int)Column::NUM_COLUMN;
+    else
+        return (int)Column::NUM_COLUMN-1;
 }
 
 CANFrameModel::CANFrameModel(QObject *parent)
@@ -76,6 +80,7 @@ CANFrameModel::CANFrameModel(QObject *parent)
     overwriteDups = false;
     filtersPersistDuringClear = false;
     useHexMode = true;
+    useHexAndDecMode = false;
     timeStyle = TS_MICROS;
     timeOffset = 0;
     needFilterRefresh = false;
@@ -97,6 +102,16 @@ void CANFrameModel::setHexMode(bool mode)
         this->beginResetModel();
         useHexMode = mode;
         Utility::decimalMode = !useHexMode;
+        this->endResetModel();
+    }
+}
+
+void CANFrameModel::setHexAndDecMode(bool mode)
+{
+    if (useHexAndDecMode != mode)
+    {
+        this->beginResetModel();
+        useHexAndDecMode = mode;
         this->endResetModel();
     }
 }
@@ -515,19 +530,26 @@ QVariant CANFrameModel::data(const QModelIndex &index, int role) const
                  tempString = "ERROR";
             }
             return tempString;
+
         case Column::Data:
             if (dataLen < 0) dataLen = 0;
             //if (useHexMode) tempString.append("0x ");
             if (thisFrame.frameType() == QCanBusFrame::RemoteRequestFrame) {
                 return tempString;
             }
-            for (int i = 0; i < dataLen; i++)
-            {
-                if (useHexMode) tempString.append( QString::number(data[i], 16).toUpper().rightJustified(2, '0'));
-                else tempString.append(QString::number(data[i], 10));
-                if (!((i+1) % bytesPerLine) && (i != (dataLen - 1))) tempString.append("\n");
-                else tempString.append(" ");
+
+            for (int i = 0; i < dataLen; i++) {
+                if (useHexMode)
+                    tempString.append( QString::number(data[i], 16).toUpper().rightJustified(2, '0'));
+                else
+                    tempString.append(QString::number(data[i], 10));
+
+                if (!((i+1) % bytesPerLine) && (i != (dataLen - 1)))
+                    tempString.append("\n");
+                else
+                    tempString.append(" ");
             }
+
             if (thisFrame.frameType() == thisFrame.ErrorFrame)
             {
                 if (thisFrame.error() & thisFrame.TransmissionTimeoutError) tempString.append("\nTX Timeout");
@@ -580,7 +602,28 @@ QVariant CANFrameModel::data(const QModelIndex &index, int role) const
                 }
             }
             return tempString;
-        default:
+
+            case Column::DataDec:
+
+                if(!useHexAndDecMode)
+                    return tempString;;
+
+                if (dataLen < 0)
+                    dataLen = 0;
+                    //if (useHexMode) tempString.append("0x ");
+
+                if (thisFrame.frameType() == QCanBusFrame::RemoteRequestFrame) {
+                        return tempString;
+                    }
+                for (int i = 0; i < dataLen; i++) {
+                     tempString.append(QString::number(data[i], 10));
+
+                if (!((i+1) % bytesPerLine) && (i != (dataLen - 1)))
+                    tempString.append("\n");
+                else
+                    tempString.append(" ");
+                }
+            default:
             return tempString;
         }
     }
@@ -618,6 +661,11 @@ QVariant CANFrameModel::headerData(int section, Qt::Orientation orientation,
             return QString(tr("ASCII"));
         case Column::Data:
             return QString(tr("Data"));
+        case Column::DataDec:
+            if(useHexAndDecMode)
+                return QString(tr("DataDec"));
+            else
+                return QString("");
         default:
             return QString("");
         }

@@ -150,6 +150,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //new implementation for continuous logging
     connect(CANConManager::getInstance(), &CANConManager::framesReceived, this, &MainWindow::logReceivedFrame);
 
+    connect(ui->cbAutoScroll, &QAbstractButton::toggled, this, &MainWindow::interpretAutoScroll);
     connect(ui->cbInterpret, &QAbstractButton::toggled, this, &MainWindow::interpretToggled);
     connect(ui->cbOverwrite, &QAbstractButton::toggled, this, &MainWindow::overwriteToggled);
     connect(ui->cbPersistentFilters, &QAbstractButton::toggled, this, &MainWindow::presistentFiltersToggled);
@@ -324,7 +325,6 @@ void MainWindow::exitApp()
 //the close event can be trapped and ignored so put unsaved warnings in here so the user can abort the program closing if they forgot to save things.
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-
     QMessageBox::StandardButton confirmDialog;
 
     for (int i = 0; i < dbcHandler->getFileCount(); i++)
@@ -375,6 +375,9 @@ void MainWindow::updateSettings()
 
 void MainWindow::readSettings()
 {
+    //bool UseHexAndDec;
+       //ui->cbDisplayHexAndDec->setChecked(settings.value("Main/UseHexAndDec", false).toBool());
+
     QSettings settings;
     if (settings.value("Main/SaveRestorePositions", false).toBool())
     {
@@ -389,12 +392,43 @@ void MainWindow::readSettings()
         ui->canFramesView->setColumnWidth(5, settings.value("Main/BusColumn", 40).toUInt()); //bus
         ui->canFramesView->setColumnWidth(6, settings.value("Main/LengthColumn", 40).toUInt()); //length
         ui->canFramesView->setColumnWidth(7, settings.value("Main/AsciiColumn", 50).toUInt()); //ascii
-        //ui->canFramesView->setColumnWidth(8, settings.value("Main/DataColumn", 225).toUInt()); //data
+
+        if(useHexAndDec)
+            ui->canFramesView->setColumnWidth(8, settings.value("Main/DataColumn", 300).toUInt()); //data
     }
+
+    if (settings.value("Main/Interpret", false).toBool())
+    {
+        ui->cbInterpret->setChecked(Qt::Checked);
+        model->setInterpretMode(true);
+    }
+    else
+        model->setInterpretMode(false);
+
     if (settings.value("Main/AutoScroll", false).toBool())
     {
-        ui->cbAutoScroll->setChecked(true);
+        ui->cbAutoScroll->setChecked(Qt::Checked);
     }
+
+    if (settings.value("Main/Overwrite", false).toBool())
+    {
+        ui->cbOverwrite->setChecked(Qt::Checked);
+        model->setOverwriteMode(true);
+    }
+    else
+    {
+        model->setOverwriteMode(false);
+        rowExpansionActive = false;
+    }
+
+    if (settings.value("Main/PersistentFilters", false).toBool())
+    {
+        ui->cbPersistentFilters->setChecked(Qt::Checked);
+        model->setClearMode(true);
+    }
+    else
+        model->setClearMode(false);
+
     int fontSize = settings.value("Main/FontSize", 9).toUInt();
     QFont newFont = QFont(ui->canFramesView->font());
     newFont.setPointSize(fontSize);
@@ -414,6 +448,9 @@ void MainWindow::readUpdateableSettings()
     useHex = settings.value("Main/UseHex", true).toBool();
     model->setHexMode(useHex);
     Utility::decimalMode = !useHex;
+
+    useHexAndDec = settings.value("Main/UseHexAndDec", true).toBool();
+    model->setHexAndDecMode(useHexAndDec);
 
     bool tempBool;
     TimeStyle ts = TS_MICROS;
@@ -458,7 +495,9 @@ void MainWindow::writeSettings()
         settings.setValue("Main/BusColumn", ui->canFramesView->columnWidth(5));
         settings.setValue("Main/LengthColumn", ui->canFramesView->columnWidth(6));
         settings.setValue("Main/AsciiColumn", ui->canFramesView->columnWidth(7));
-        //settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
+
+        if(useHexAndDec)
+            settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
     }
 }
 
@@ -832,14 +871,27 @@ void MainWindow::setupSendToLatestGraphWindow()
         msgbox.exec();
     }
 }
+
+void MainWindow::interpretAutoScroll(bool state)
+{
+    QSettings settings;
+    settings.setValue("Main/AutoScroll", state);
+}
+
 void MainWindow::interpretToggled(bool state)
 {
+    QSettings settings;
+    settings.setValue("Main/Interpret", state);
+
     model->setInterpretMode(state);
     //ui->canFramesView->resizeRowsToContents();   //a VERY costly operation!
 }
 
 void MainWindow::overwriteToggled(bool state)
 {
+    QSettings settings;
+    settings.setValue("Main/Overwrite", state);
+
     if (state)
     {
         QMessageBox::StandardButton confirmDialog;
@@ -859,7 +911,10 @@ void MainWindow::overwriteToggled(bool state)
 }
 
 void MainWindow::presistentFiltersToggled(bool state)
-{
+{    
+    QSettings settings;
+    settings.setValue("Main/PersistentFilters", state);
+
     if (state)
     {
         model->setClearMode(true);

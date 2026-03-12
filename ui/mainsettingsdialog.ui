@@ -84,6 +84,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="cbDisplayHexAndDec">
+          <property name="text">
+           <string>Display values as hexadecimal and decimal</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QCheckBox" name="cbValidate">
           <property name="text">
            <string>Require validation of GVRET connection</string>
