@@ -718,7 +718,7 @@ JSEdit::JSEdit(QWidget *parent)
     connect(this, SIGNAL(updateRequest(QRect, int)), this, SLOT(updateSidebar(QRect, int)));
 
     QFont textFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    textFont.setPointSize(14);
+    textFont.setPointSize(12);
     setFont(textFont);
 }
 
