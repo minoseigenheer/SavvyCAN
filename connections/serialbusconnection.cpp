@@ -183,7 +183,6 @@ void SerialBusConnection::deviceStateChanged(QCanBusDevice::CanBusDeviceState st
 {
     CANConStatus stats;
     if (state == QCanBusDevice::ConnectedState) {
-        mConnectTime = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch()) * 1000ULL;
         setStatus(CANCon::CONNECTED);
         stats.conStatus = getStatus();
         stats.numHardwareBuses = mNumBuses;
@@ -281,12 +280,17 @@ void SerialBusConnection::framesReceived()
                 else {
                     uint64_t hwTimestamp = static_cast<uint64_t>(recFrame.timeStamp().seconds()) * 1000000ULL
                                           + static_cast<uint64_t>(recFrame.timeStamp().microSeconds());
-                    // Some backends (e.g. PCAN) provide hardware timestamps relative to device open,
-                    // not Unix epoch. Detect this by checking if the hw timestamp is smaller than
-                    // timeBasis (which is epoch-based). If so, offset it using the recorded connect time.
-                    if (hwTimestamp < timeBasis && mConnectTime > 0)
-                        hwTimestamp += mConnectTime;
-                    uint64_t relTimestamp = (hwTimestamp >= timeBasis) ? (hwTimestamp - timeBasis) : 0;
+                    uint64_t relTimestamp;
+                    if (hwTimestamp >= timeBasis) {
+                        // Epoch-based hw timestamp (e.g. SocketCAN): subtract session basis.
+                        relTimestamp = hwTimestamp - timeBasis;
+                    } else {
+                        // Uptime-based hw timestamp (e.g. PCAN): the hw clock cannot be
+                        // synchronised to the elapsed timer without a fixed anchor bias,
+                        // so use the elapsed timer directly — the same source as Tx timestamps.
+                        // This guarantees Tx and Rx share one consistent clock with no drift.
+                        relTimestamp = CANConManager::getInstance()->getElapsedUs();
+                    }
                     frame_p->setTimeStamp(CommFrame::TimeStamp(0, relTimestamp));
                 }
 
