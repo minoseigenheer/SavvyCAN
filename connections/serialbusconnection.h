@@ -52,6 +52,7 @@ private slots:
 protected:
     QCanBusDevice     *mDev_p = nullptr;
     QTimer             mTimer;
+    uint64_t           mConnectTime = 0; // system time (µs) when device connected, for relative-timestamp devices like PCAN
 };
 
 

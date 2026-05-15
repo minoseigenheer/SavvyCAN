@@ -183,6 +183,7 @@ void SerialBusConnection::deviceStateChanged(QCanBusDevice::CanBusDeviceState st
 {
     CANConStatus stats;
     if (state == QCanBusDevice::ConnectedState) {
+        mConnectTime = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch()) * 1000ULL;
         setStatus(CANCon::CONNECTED);
         stats.conStatus = getStatus();
         stats.numHardwareBuses = mNumBuses;
@@ -277,7 +278,17 @@ void SerialBusConnection::framesReceived()
                 if (useSystemTime) {
                     frame_p->setTimeStamp(CommFrame::TimeStamp::fromMicroSeconds(QDateTime::currentMSecsSinceEpoch() * 1000ul));
                 }
-                else frame_p->setTimeStamp(CommFrame::TimeStamp(0, (recFrame.timeStamp().seconds() * 1000000ul + recFrame.timeStamp().microSeconds()) - timeBasis));
+                else {
+                    uint64_t hwTimestamp = static_cast<uint64_t>(recFrame.timeStamp().seconds()) * 1000000ULL
+                                          + static_cast<uint64_t>(recFrame.timeStamp().microSeconds());
+                    // Some backends (e.g. PCAN) provide hardware timestamps relative to device open,
+                    // not Unix epoch. Detect this by checking if the hw timestamp is smaller than
+                    // timeBasis (which is epoch-based). If so, offset it using the recorded connect time.
+                    if (hwTimestamp < timeBasis && mConnectTime > 0)
+                        hwTimestamp += mConnectTime;
+                    uint64_t relTimestamp = (hwTimestamp >= timeBasis) ? (hwTimestamp - timeBasis) : 0;
+                    frame_p->setTimeStamp(CommFrame::TimeStamp(0, relTimestamp));
+                }
 
                 checkTargettedFrame(*frame_p);
 
