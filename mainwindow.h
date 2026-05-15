@@ -164,6 +164,7 @@ private:
     bool inhibitFilterUpdate;
     bool useHex;
     bool useColorsByCanId;
+    bool useHexAndDec;
     bool allowCapture;
     bool ignoreDBCColors;
     bool CSVAbsTime;

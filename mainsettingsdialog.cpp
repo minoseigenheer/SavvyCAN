@@ -27,6 +27,7 @@ MainSettingsDialog::MainSettingsDialog(QWidget *parent) :
     //update the GUI with all the settings we have stored giving things
     //defaults if nothing was stored (if this is the first time)
     ui->cbDisplayHex->setChecked(settings.value("Main/UseHex", true).toBool());
+    ui->cbDisplayHexAndDec->setChecked(settings.value("Main/UseHexAndDec", false).toBool());
     ui->cbFlowAutoRef->setChecked(settings.value("FlowView/AutoRef", false).toBool());
     ui->cbHexGraphFlow->setChecked(settings.value("FlowView/GraphHex", false).toBool());
     ui->cbFlowUseTimestamp->setChecked(settings.value("FlowView/UseTimestamp", true).toBool());
@@ -197,6 +198,7 @@ void MainSettingsDialog::updateSettings()
     settings.setValue("Main/PersistentFilters", false);
 */
     settings.setValue("Main/UseHex", ui->cbDisplayHex->isChecked());
+    settings.setValue("Main/UseHexAndDec", ui->cbDisplayHexAndDec->isChecked());
     settings.setValue("Main/UseFiltered", ui->cbUseFiltered->isChecked());
     settings.setValue("Main/UseOpenGL", ui->cbUseOpenGL->isChecked());
     settings.setValue("Main/EqualDataSniff", ui->cbEqualSniffer->isChecked());

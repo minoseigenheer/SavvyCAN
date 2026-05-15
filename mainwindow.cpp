@@ -384,6 +384,9 @@ void MainWindow::updateSettings()
 
 void MainWindow::readSettings()
 {
+    //bool UseHexAndDec;
+       //ui->cbDisplayHexAndDec->setChecked(settings.value("Main/UseHexAndDec", false).toBool());
+
     QSettings settings;
     if (settings.value("Main/SaveRestorePositions", false).toBool())
     {
@@ -398,7 +401,9 @@ void MainWindow::readSettings()
         ui->canFramesView->setColumnWidth(5, settings.value("Main/BusColumn", 40).toUInt()); //bus
         ui->canFramesView->setColumnWidth(6, settings.value("Main/LengthColumn", 40).toUInt()); //length
         ui->canFramesView->setColumnWidth(7, settings.value("Main/AsciiColumn", 50).toUInt()); //ascii
-        //ui->canFramesView->setColumnWidth(8, settings.value("Main/DataColumn", 225).toUInt()); //data
+
+        if(useHexAndDec)
+            ui->canFramesView->setColumnWidth(8, settings.value("Main/DataColumn", 300).toUInt()); //data
     }
 
     if (settings.value("Main/Interpret", false).toBool())
@@ -455,6 +460,8 @@ void MainWindow::readUpdateableSettings()
 
     useColorsByCanId = settings.value("Main/ColorsByCanId", false).toBool();
     model->setUseColorsByCanId(useColorsByCanId);
+    useHexAndDec = settings.value("Main/UseHexAndDec", true).toBool();
+    model->setHexAndDecMode(useHexAndDec);
 
     bool tempBool;
     TimeStyle ts = TS_MICROS;
@@ -499,7 +506,9 @@ void MainWindow::writeSettings()
         settings.setValue("Main/BusColumn", ui->canFramesView->columnWidth(5));
         settings.setValue("Main/LengthColumn", ui->canFramesView->columnWidth(6));
         settings.setValue("Main/AsciiColumn", ui->canFramesView->columnWidth(7));
-        //settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
+
+        if(useHexAndDec)
+            settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
     }
 }
 
