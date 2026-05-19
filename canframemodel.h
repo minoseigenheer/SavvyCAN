@@ -60,6 +60,7 @@ public:
     void setBytesPerLine(int bpl);
     void loadFilterFile(QString filename);
     void saveFilterFile(QString filename);
+    void setSearchFilter(const QString &text);
     void normalizeTiming();
     void recalcOverwrite();
     bool needsFilterRefresh();
@@ -106,6 +107,7 @@ private:
     uint32_t preallocSize;
     bool sortDirAsc;
     int bytesPerLine;
+    QString m_searchFilter;
 };
 
 
