@@ -239,6 +239,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->leSearchFilter->setClearButtonEnabled(true);
     connect(ui->leSearchFilter, &QLineEdit::textChanged, this, &MainWindow::onSearchFilterChanged);
 
+    ui->leSearchFilter->setClearButtonEnabled(true);
+    connect(ui->leSearchFilter, &QLineEdit::textChanged, this, &MainWindow::onSearchFilterChanged);
+
     connect(&updateTimer, &QTimer::timeout, this, &MainWindow::tickGUIUpdate);
     updateTimer.setInterval(250);
     updateTimer.start();

@@ -1072,6 +1072,15 @@ void CommFrameModel::sendRefresh()
             }
             tempContainer = changingFiltered;
             lastSeenData = newSeen;
+        if (!m_searchFilter.isEmpty()) {
+            QVector<CommFrame> searched;
+            searched.reserve(tempContainer.count());
+            for (int i = 0; i < tempContainer.count(); ++i) {
+                QString idStr = QString::number(tempContainer[i].frameId(), 16).toUpper();
+                if (idStr.contains(m_searchFilter, Qt::CaseInsensitive))
+                    searched.append(tempContainer[i]);
+            }
+            tempContainer = searched;
         }
 
         mutex.lock();
