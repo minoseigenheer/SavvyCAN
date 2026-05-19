@@ -79,6 +79,8 @@ qt_add_executable(SavvyCAN WIN32 MACOSX_BUNDLE
     dbc/dbcnoderebaseeditor.cpp dbc/dbcnoderebaseeditor.h
     dbc/dbcsignaleditor.cpp dbc/dbcsignaleditor.h
     filterutility.cpp filterutility.h
+    highlightitemdelegate.cpp highlightitemdelegate.h
+    highlightoverviewbar.cpp highlightoverviewbar.h
     firmwareuploaderwindow.cpp firmwareuploaderwindow.h
     framefileio.cpp framefileio.h
     frameplaybackobject.cpp frameplaybackobject.h

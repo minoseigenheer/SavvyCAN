@@ -91,6 +91,7 @@ CommFrameModel::CommFrameModel(QObject *parent)
     timeFormat =  "MMM-dd HH:mm:ss.zzz";
     sortDirAsc = false;
     bytesPerLine = 8;
+    m_highlightEnabled = true;
 }
 
 void CommFrameModel::setBytesPerLine(int bpl)
@@ -250,6 +251,44 @@ void CommFrameModel::setAllFilters(bool state)
     sendRefresh();
 }
 
+void CommFrameModel::toggleHighlight(int id)
+{
+    if (m_highlightedIds.contains(id))
+        m_highlightedIds.remove(id);
+    else
+        m_highlightedIds.insert(id);
+
+    // One bulk dataChanged over the whole visible range — much faster than per-row signals.
+    if (!filteredFrames.isEmpty())
+        emit dataChanged(index(0, 0),
+                         index(filteredFrames.count() - 1, columnCount(QModelIndex()) - 1),
+                         {Qt::BackgroundRole});
+    emit highlightChanged();
+}
+
+void CommFrameModel::clearAllHighlights()
+{
+    m_highlightedIds.clear();
+    beginResetModel();
+    endResetModel();
+    emit highlightChanged();
+}
+
+bool CommFrameModel::isHighlighted(int id) const
+{
+    return m_highlightEnabled && m_highlightedIds.contains(id);
+}
+
+const QSet<int>& CommFrameModel::getHighlightedIds() const
+{
+    return m_highlightedIds;
+}
+
+int CommFrameModel::getFrameCountForId(int id) const
+{
+    return m_idCounts.value(id, 0);
+}
+
 void CommFrameModel::setSearchFilter(const QString &text)
 {
     // strip leading "0x" or "0X" to keep comparison clean
@@ -258,6 +297,17 @@ void CommFrameModel::setSearchFilter(const QString &text)
         stripped = stripped.mid(2);
     m_searchFilter = stripped;
     sendRefresh();
+}
+
+void CommFrameModel::setHighlightEnabled(bool enabled)
+{
+    m_highlightEnabled = enabled;
+    if (!enabled) {
+        m_highlightedIds.clear();
+        emit highlightChanged();
+    }
+    beginResetModel();
+    endResetModel();
 }
 
 /*
@@ -422,6 +472,11 @@ void CommFrameModel::recalcOverwrite()
     filteredFrames.append(overWriteFrames.values());
     filteredFrames.reserve(preallocSize);
 
+    // Rebuild per-ID count cache from the overwrite frames (count already stored per frame)
+    m_idCounts.clear();
+    for (const CommFrame &f : filteredFrames)
+        m_idCounts[(int)f.frameId()] = (int)f.getFrameCount();
+
     /*for (int i = 0; i < frames.count(); i++)
     {
         if (filters[frames[i].frameId()] && busFilters[frames[i].bus])
@@ -453,6 +508,11 @@ QVariant CommFrameModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::BackgroundRole)
     {
+        if (m_highlightEnabled && m_highlightedIds.contains((int)thisFrame.frameId()))
+        {
+            return QBrush(QApplication::palette().color(QPalette::Highlight));
+        }
+
         if (dbcHandler != nullptr && interpretFrames && !ignoreDBCColors)
         {
             DBC_MESSAGE *msg = dbcHandler->findMessage(thisFrame);
@@ -793,6 +853,7 @@ void CommFrameModel::addFrame(const CommFrame& frame, bool autoRefresh = false)
         try
         {
             frames.append(tempFrame);
+            m_idCounts[(int)tempFrame.frameId()]++;
 
             if (filters[tempFrame.frameId()] && busFilters[tempFrame.getBus()])
             {
@@ -833,6 +894,7 @@ void CommFrameModel::addFrame(const CommFrame& frame, bool autoRefresh = false)
             }
         }
         frames.append(tempFrame);
+        m_idCounts[(int)tempFrame.frameId()]++;
         if (!found)
         {
             //frames.append(tempFrame);
@@ -925,6 +987,12 @@ void CommFrameModel::sendRefresh()
             tempContainer = searched;
         }
 
+        // Rebuild per-ID count cache from all frames (not just filtered)
+        m_idCounts.clear();
+        int total = frames.count();
+        for (int i = 0; i < total; ++i)
+            m_idCounts[(int)frames[i].frameId()]++;
+
         mutex.lock();
         beginResetModel();
         filteredFrames.clear();
@@ -970,6 +1038,7 @@ void CommFrameModel::clearFrames()
     this->beginResetModel();
     frames.clear();
     filteredFrames.clear();
+    m_idCounts.clear();
     if(filtersPersistDuringClear == false)
     {
         filters.clear();
@@ -1000,6 +1069,7 @@ void CommFrameModel::insertFrames(const QVector<CommFrame> &newFrames)
     for (int i = 0; i < newFrames.count(); i++)
     {
         frames.append(newFrames[i]);
+        m_idCounts[(int)newFrames[i].frameId()]++;
         if (!filters.contains(newFrames[i].frameId()))
         {
             filters.insert(newFrames[i].frameId(), true);

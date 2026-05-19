@@ -11,6 +11,8 @@
 #include "filterutility.h"
 
 #include <QClipboard>
+#include <QHBoxLayout>
+#include <QBoxLayout>
 /*
 Some notes on things I'd like to put into the program but haven't put on github (yet)
 
@@ -201,8 +203,48 @@ MainWindow::MainWindow(QWidget *parent) :
     // Prevent annoying accidental horizontal scrolling when filter list is populated with long interpreted message names
     ui->listFilters->horizontalScrollBar()->setEnabled(false);
 
+    // Highlight item delegate — shows clickable arrow indicator in the filter list
+    m_highlightDelegate = new HighlightItemDelegate(model, this);
+    ui->listFilters->setItemDelegate(m_highlightDelegate);
+
+    // Highlight overview bar — narrow stripe bar next to the frame table only (not the sender below).
+    // verticalLayout_3 contains [canFramesView, tableSimpleSender].
+    // We remove canFramesView from verticalLayout_3, wrap it + the bar in a QHBoxLayout, and put
+    // that wrapper back — so the bar height matches canFramesView exactly.
+    m_overviewBar = new HighlightOverviewBar(this);
+    m_overviewBar->setup(model, ui->canFramesView);
+    {
+        // verticalLayout_3 directly contains canFramesView (item 0) and tableSimpleSender (item 1).
+        // Replace canFramesView with a horizontal wrapper [canFramesView | overviewBar] so the
+        // bar's height matches canFramesView exactly and doesn't extend over the sender panel.
+        QBoxLayout *vbox3 = ui->verticalLayout_3;
+        int idx = -1;
+        int stretch = 4;
+        for (int i = 0; i < vbox3->count(); ++i) {
+            if (vbox3->itemAt(i)->widget() == ui->canFramesView) {
+                idx = i;
+                stretch = vbox3->stretch(i);
+                break;
+            }
+        }
+        if (idx >= 0) {
+            vbox3->removeWidget(ui->canFramesView);
+            QHBoxLayout *wrapper = new QHBoxLayout();
+            wrapper->setContentsMargins(0, 0, 0, 0);
+            wrapper->setSpacing(2);
+            wrapper->addWidget(ui->canFramesView, 1);
+            wrapper->addWidget(m_overviewBar, 0);
+            vbox3->insertLayout(idx, wrapper, stretch);
+        }
+    }
+
     ui->leSearchFilter->setClearButtonEnabled(true);
+    connect(model, &CommFrameModel::highlightChanged, this, [this]() {
+        ui->listFilters->viewport()->update();
+    });
+
     connect(ui->leSearchFilter, &QLineEdit::textChanged, this, &MainWindow::onSearchFilterChanged);
+    connect(ui->btnClearHighlights, &QPushButton::clicked, this, &MainWindow::clearAllHighlights);
 
     connect(&updateTimer, &QTimer::timeout, this, &MainWindow::tickGUIUpdate);
     updateTimer.setInterval(250);
@@ -489,10 +531,11 @@ void MainWindow::readUpdateableSettings()
 
     CSVAbsTime = settings.value("Main/CSVAbsTime", false).toBool();
 
-    if (settings.value("Main/FilterLabeling", false).toBool())
-        ui->listFilters->setMaximumWidth(250);
-    else
-        ui->listFilters->setMaximumWidth(175);
+    bool highlightEnabled = settings.value("Main/EnableFrameHighlight", true).toBool();
+    model->setHighlightEnabled(highlightEnabled);
+    if (m_highlightDelegate) m_highlightDelegate->setEnabled(highlightEnabled);
+    if (m_overviewBar) m_overviewBar->setVisible(highlightEnabled);
+    ui->btnClearHighlights->setVisible(highlightEnabled);
     updateFilterList();    
 }    
 
@@ -553,6 +596,12 @@ void MainWindow::onSearchFilterChanged(const QString &text)
             item->setHidden(!idStr.contains(stripped, Qt::CaseInsensitive));
         }
     }
+}
+
+void MainWindow::clearAllHighlights()
+{
+    model->clearAllHighlights();
+    // highlightChanged signal will trigger viewport()->update() via the connection above
 }
 
 void MainWindow::processSenderCellChange(int line, int col)
@@ -1141,6 +1190,8 @@ void MainWindow::tickGUIUpdate()
             bDirty = true;
             emit framesUpdated(rxFrames); //anyone care that frames were updated?
             manageRowExpansion();
+            // Repaint filter list so per-ID counts stay current
+            ui->listFilters->viewport()->update();
         }
 
         if (model->needsFilterRefresh()) updateFilterList();
