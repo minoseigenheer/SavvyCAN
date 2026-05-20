@@ -115,20 +115,13 @@
          <widget class="QCheckBox" name="cbShowSendPanel">
           <property name="text">
            <string>Show simple send panel in main window</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="cbEnableFrameHighlight">
-           <property name="text">
-            <string>Enable frame ID highlight feature</string>
-           </property>
-          </widget>
-         </item>
+          </property>
+         </widget>
+        </item>
         <item>
-         <widget class="QCheckBox" name="cbShowSendPanel">
+         <widget class="QCheckBox" name="cbEnableFrameHighlight">
           <property name="text">
-           <string>Show simple send panel in main window</string>
+           <string>Enable frame ID highlight feature</string>
           </property>
          </widget>
         </item>

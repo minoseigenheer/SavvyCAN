@@ -638,7 +638,6 @@ void MainWindow::readUpdateableSettings()
     if (m_highlightDelegate) m_highlightDelegate->setEnabled(highlightEnabled);
     if (m_overviewBar) m_overviewBar->setVisible(highlightEnabled);
     ui->btnClearHighlights->setVisible(highlightEnabled);
-
     updateFilterList();    
 }    
 
@@ -659,10 +658,10 @@ void MainWindow::writeSettings()
         settings.setValue("Main/BusColumn", ui->canFramesView->columnWidth(5));
         settings.setValue("Main/LengthColumn", ui->canFramesView->columnWidth(6));
         settings.setValue("Main/AsciiColumn", ui->canFramesView->columnWidth(7));
-         if (useHexAndDec)
-             settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
-         settings.setValue("Main/SplitterMain", ui->splitterMain->saveState());
-         settings.setValue("Main/SplitterLeft", ui->splitterLeft->saveState());
+        if (useHexAndDec)
+            settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
+        settings.setValue("Main/SplitterMain", ui->splitterMain->saveState());
+        settings.setValue("Main/SplitterLeft", ui->splitterLeft->saveState());
     }
     // Always save splitterLeft so send-panel height is restored on next launch
     settings.setValue("Main/SplitterLeft", ui->splitterLeft->saveState());
