@@ -63,11 +63,12 @@ jobs:
         run: |
           APP="${{github.workspace}}/build/SavvyCAN.app"
           QT_PREFIX="$(brew --prefix qt@6)"
-          mkdir -p "$APP/Contents/MacOS/help"
+          mkdir -p "$APP/Contents/Resources/help"
           mkdir -p "$APP/Contents/PlugIns/canbus"
-          cp -R help/* "$APP/Contents/MacOS/help"
+          cp -R help/* "$APP/Contents/Resources/help"
           cp "$QT_PREFIX"/share/qt/plugins/canbus/* "$APP/Contents/PlugIns/canbus/" || true
           "$QT_PREFIX"/bin/macdeployqt "$APP" -dmg
+          test -f "${{github.workspace}}/build/SavvyCAN.dmg"
           mv "${{github.workspace}}/build/SavvyCAN.dmg" ./SavvyCAN_x64.dmg
       
       - uses: actions/upload-artifact@v4
@@ -96,8 +97,8 @@ jobs:
 
       - name: Package     
         run: |
-          mkdir -p build/SavvyCAN.app/Contents/MacOS/help
-          cp -R help/* build/SavvyCAN.app/Contents/MacOS/help
+          mkdir -p build/SavvyCAN.app/Contents/Resources/help
+          cp -R help/* build/SavvyCAN.app/Contents/Resources/help
           macdeployqt build/SavvyCAN.app -dmg
           mv build/SavvyCAN.dmg ./SavvyCAN_arm64.dmg
       
