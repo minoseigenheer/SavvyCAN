@@ -524,12 +524,13 @@ void MainWindow::readSettings()
         if (!splitterLeftState.isEmpty())
             ui->splitterLeft->restoreState(splitterLeftState);
         else
-            ui->splitterLeft->setSizes({800, 200});
+            ui->splitterLeft->setSizes({800, 200}); // 80% frame table, 20% send panel
     }
     else
     {
-        ui->splitterMain->setSizes({750, 250});
-        ui->splitterLeft->setSizes({800, 200});
+        // No saved positions – apply default proportions
+        ui->splitterMain->setSizes({750, 250}); // 75% left, 25% right panel
+        ui->splitterLeft->setSizes({800, 200}); // 80% frame table, 20% send panel
     }
 
     if (settings.value("Main/AutoScroll", false).toBool())
@@ -625,19 +626,14 @@ void MainWindow::readUpdateableSettings()
 
     CSVAbsTime = settings.value("Main/CSVAbsTime", false).toBool();
 
-    if (settings.value("Main/FilterLabeling", false).toBool())
-        ui->listFilters->setMaximumWidth(250);
-    else
-        ui->listFilters->setMaximumWidth(175);
-
-    bool showSendPanel = settings.value("Main/ShowSendPanel", true).toBool();
-    ui->tableSimpleSender->setVisible(showSendPanel);
-
     bool highlightEnabled = settings.value("Main/EnableFrameHighlight", true).toBool();
     model->setHighlightEnabled(highlightEnabled);
     if (m_highlightDelegate) m_highlightDelegate->setEnabled(highlightEnabled);
     if (m_overviewBar) m_overviewBar->setVisible(highlightEnabled);
     ui->btnClearHighlights->setVisible(highlightEnabled);
+
+    bool showSendPanel = settings.value("Main/ShowSendPanel", true).toBool();
+    ui->tableSimpleSender->setVisible(showSendPanel);
     updateFilterList();    
 }    
 
@@ -658,7 +654,7 @@ void MainWindow::writeSettings()
         settings.setValue("Main/BusColumn", ui->canFramesView->columnWidth(5));
         settings.setValue("Main/LengthColumn", ui->canFramesView->columnWidth(6));
         settings.setValue("Main/AsciiColumn", ui->canFramesView->columnWidth(7));
-        if (useHexAndDec)
+        if(useHexAndDec)
             settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
         settings.setValue("Main/SplitterMain", ui->splitterMain->saveState());
         settings.setValue("Main/SplitterLeft", ui->splitterLeft->saveState());
@@ -1859,7 +1855,7 @@ Data Bytes: 88 10 00 13 BB 00 06 00
                     }
 
                     QString temp;
-                    if (sigs[j]->processAsText(*frame, temp))
+                    if (sigs[j]->processAsText(*frame, temp, false))
                     {
                         builderString.append(temp);
                         builderString.append(",");
