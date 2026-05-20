@@ -498,12 +498,10 @@ void CommFrameModel::recalcOverwrite()
         filteredFrames = changingFiltered;
         lastSeenData = newSeen;
     }
-=======
     // Rebuild per-ID count cache from the overwrite frames (count already stored per frame)
     m_idCounts.clear();
     for (const CommFrame &f : filteredFrames)
         m_idCounts[(int)f.frameId()] = (int)f.getFrameCount();
->>>>>>> 2c7735a (Add frame ID highlight feature with overview bar)
 
     /*for (int i = 0; i < frames.count(); i++)
     {
