@@ -1,4 +1,5 @@
 #include <QtDebug>
+#include <QFile>
 #include "utility.h"
 #include "helpwindow.h"
 #include "ui_helpwindow.h"
@@ -61,6 +62,13 @@ HelpWindow* HelpWindow::getRef()
 void HelpWindow::showHelp(QString help)
 {
     QString helpfile = QCoreApplication::applicationDirPath() + "/help/" + help;
+
+    // In macOS app bundles, documentation belongs under Contents/Resources.
+    if (!QFile::exists(helpfile))
+    {
+        helpfile = QCoreApplication::applicationDirPath() + "/../Resources/help/" + help;
+    }
+
     QUrl url = QUrl::fromLocalFile(helpfile);
     qDebug() << "Searching for " << url;
     ui->textHelp->setSource(url);
