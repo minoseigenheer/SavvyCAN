@@ -214,28 +214,17 @@ MainWindow::MainWindow(QWidget *parent) :
     m_overviewBar = new HighlightOverviewBar(this);
     m_overviewBar->setup(model, ui->canFramesView);
     {
-        // verticalLayout_3 directly contains canFramesView (item 0) and tableSimpleSender (item 1).
-        // Replace canFramesView with a horizontal wrapper [canFramesView | overviewBar] so the
-        // bar's height matches canFramesView exactly and doesn't extend over the sender panel.
-        QBoxLayout *vbox3 = ui->verticalLayout_3;
-        int idx = -1;
-        int stretch = 4;
-        for (int i = 0; i < vbox3->count(); ++i) {
-            if (vbox3->itemAt(i)->widget() == ui->canFramesView) {
-                idx = i;
-                stretch = vbox3->stretch(i);
-                break;
-            }
-        }
-        if (idx >= 0) {
-            vbox3->removeWidget(ui->canFramesView);
-            QHBoxLayout *wrapper = new QHBoxLayout();
-            wrapper->setContentsMargins(0, 0, 0, 0);
-            wrapper->setSpacing(2);
-            wrapper->addWidget(ui->canFramesView, 1);
-            wrapper->addWidget(m_overviewBar, 0);
-            vbox3->insertLayout(idx, wrapper, stretch);
-        }
+        // splitterLeft contains canFramesView (index 0) and tableSimpleSender (index 1).
+        // Wrap canFramesView + overviewBar side-by-side in a container so the bar's height
+        // always matches canFramesView and doesn't extend over the sender panel.
+        QWidget *container = new QWidget();
+        QHBoxLayout *wrapper = new QHBoxLayout(container);
+        wrapper->setContentsMargins(0, 0, 0, 0);
+        wrapper->setSpacing(2);
+        wrapper->addWidget(ui->canFramesView, 1);  // re-parents canFramesView away from splitter
+        wrapper->addWidget(m_overviewBar, 0);
+        // Insert container at index 0 (tableSimpleSender slides to index 1 automatically)
+        ui->splitterLeft->insertWidget(0, container);
     }
 
     ui->leSearchFilter->setClearButtonEnabled(true);
@@ -453,6 +442,24 @@ void MainWindow::readSettings()
 
         if(useHexAndDec)
             ui->canFramesView->setColumnWidth(8, settings.value("Main/DataColumn", 300).toUInt()); //data
+
+        QByteArray splitterMainState = settings.value("Main/SplitterMain").toByteArray();
+        if (!splitterMainState.isEmpty())
+            ui->splitterMain->restoreState(splitterMainState);
+        else
+            ui->splitterMain->setSizes({750, 250}); // 75% left, 25% right panel
+
+        QByteArray splitterLeftState = settings.value("Main/SplitterLeft").toByteArray();
+        if (!splitterLeftState.isEmpty())
+            ui->splitterLeft->restoreState(splitterLeftState);
+        else
+            ui->splitterLeft->setSizes({800, 200}); // 80% frame table, 20% send panel
+    }
+    else
+    {
+        // No saved positions – apply default proportions
+        ui->splitterMain->setSizes({750, 250}); // 75% left, 25% right panel
+        ui->splitterLeft->setSizes({800, 200}); // 80% frame table, 20% send panel
     }
 
     if (settings.value("Main/Interpret", false).toBool())
@@ -536,6 +543,10 @@ void MainWindow::readUpdateableSettings()
     if (m_highlightDelegate) m_highlightDelegate->setEnabled(highlightEnabled);
     if (m_overviewBar) m_overviewBar->setVisible(highlightEnabled);
     ui->btnClearHighlights->setVisible(highlightEnabled);
+
+    bool showSendPanel = settings.value("Main/ShowSendPanel", true).toBool();
+    ui->tableSimpleSender->setVisible(showSendPanel);
+
     updateFilterList();    
 }    
 
@@ -559,6 +570,9 @@ void MainWindow::writeSettings()
 
         if(useHexAndDec)
             settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
+
+        settings.setValue("Main/SplitterMain", ui->splitterMain->saveState());
+        settings.setValue("Main/SplitterLeft", ui->splitterLeft->saveState());
     }
 }
 

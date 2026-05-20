@@ -119,6 +119,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="cbShowSendPanel">
+          <property name="text">
+           <string>Show simple send panel in main window</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QCheckBox" name="cbUseOpenGL">
           <property name="text">
            <string>OpenGL Accelerated AntiAliased Graphing</string>
