@@ -94,6 +94,7 @@ MainSettingsDialog::MainSettingsDialog(QWidget *parent) :
     ui->cbFilterLabeling->setChecked(settings.value("Main/FilterLabeling", true).toBool());
     ui->cbIgnoreDBCColors->setChecked(settings.value("Main/IgnoreDBCColors", false).toBool());
     ui->cbColorsByCanId->setChecked(settings.value("Main/ColorsByCanId", false).toBool());
+    ui->cbEnableFrameHighlight->setChecked(settings.value("Main/EnableFrameHighlight", true).toBool());
     ui->cbShowSendPanel->setChecked(settings.value("Main/ShowSendPanel", true).toBool());
 
     ui->cbEqualSniffer->setChecked(settings.value("Main/EqualDataSniff", false).toBool());
@@ -145,6 +146,7 @@ MainSettingsDialog::MainSettingsDialog(QWidget *parent) :
     connect(ui->spinMaximumFrames, SIGNAL(valueChanged(int)), this, SLOT(updateSettings()));
     connect(ui->cbFontFixedWidth, SIGNAL(toggled(bool)), this, SLOT(updateSettings()));
     connect(ui->spinBytesPerLine, SIGNAL(valueChanged(int)), this, SLOT(updateSettings()));
+    connect(ui->cbEnableFrameHighlight, SIGNAL(toggled(bool)), this, SLOT(updateSettings()));
     connect(ui->cbShowSendPanel, SIGNAL(toggled(bool)), this, SLOT(updateSettings()));
 
     installEventFilter(this);
@@ -219,7 +221,18 @@ void MainSettingsDialog::updateSettings()
     settings.setValue("Main/BytesPerLine", ui->spinBytesPerLine->value());
     settings.setValue("Main/FontFixedWidth", ui->cbFontFixedWidth->isChecked());
     settings.setValue("Main/ColorsByCanId", ui->cbColorsByCanId->isChecked());
+    settings.setValue("Main/EnableFrameHighlight", ui->cbEnableFrameHighlight->isChecked());
     settings.setValue("Main/ShowSendPanel", ui->cbShowSendPanel->isChecked());
+
+    settings.setValue("Playback/AutoLoop", ui->cbPlaybackLoop->isChecked());
+    settings.setValue("Playback/DefSpeed", ui->spinPlaybackSpeed->value());
+    settings.setValue("Playback/SendingBus", ui->comboSendingBus->currentIndex());
+
+    settings.setValue("Remote/Host", ui->lineRemoteHost->text());
+    settings.setValue("Remote/Port", ui->lineRemotePort->text());
+    settings.setValue("Remote/User", ui->lineRemoteUser->text());
+    QByteArray encPass = crypto.encryptToByteArray(ui->lineRemotePassword->text());
+    settings.setValue("Remote/Pass", encPass);
 
     settings.sync();
     emit updatedSettings();

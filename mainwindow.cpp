@@ -439,24 +439,27 @@ void MainWindow::readSettings()
         ui->canFramesView->setColumnWidth(5, settings.value("Main/BusColumn", 40).toUInt()); //bus
         ui->canFramesView->setColumnWidth(6, settings.value("Main/LengthColumn", 40).toUInt()); //length
         ui->canFramesView->setColumnWidth(7, settings.value("Main/AsciiColumn", 50).toUInt()); //ascii
-        //ui->canFramesView->setColumnWidth(8, settings.value("Main/DataColumn", 225).toUInt()); //data
+
+        if(useHexAndDec)
+            ui->canFramesView->setColumnWidth(8, settings.value("Main/DataColumn", 300).toUInt()); //data
 
         QByteArray splitterMainState = settings.value("Main/SplitterMain").toByteArray();
         if (!splitterMainState.isEmpty())
             ui->splitterMain->restoreState(splitterMainState);
         else
-            ui->splitterMain->setSizes({750, 250});
+            ui->splitterMain->setSizes({750, 250}); // 75% left, 25% right panel
 
         QByteArray splitterLeftState = settings.value("Main/SplitterLeft").toByteArray();
         if (!splitterLeftState.isEmpty())
             ui->splitterLeft->restoreState(splitterLeftState);
         else
-            ui->splitterLeft->setSizes({800, 200});
+            ui->splitterLeft->setSizes({800, 200}); // 80% frame table, 20% send panel
     }
     else
     {
-        ui->splitterMain->setSizes({750, 250});
-        ui->splitterLeft->setSizes({800, 200});
+        // No saved positions – apply default proportions
+        ui->splitterMain->setSizes({750, 250}); // 75% left, 25% right panel
+        ui->splitterLeft->setSizes({800, 200}); // 80% frame table, 20% send panel
     }
 
     if (settings.value("Main/Interpret", false).toBool())
@@ -541,11 +544,6 @@ void MainWindow::readUpdateableSettings()
     if (m_overviewBar) m_overviewBar->setVisible(highlightEnabled);
     ui->btnClearHighlights->setVisible(highlightEnabled);
 
-    if (settings.value("Main/FilterLabeling", false).toBool())
-        ui->listFilters->setMaximumWidth(250);
-    else
-        ui->listFilters->setMaximumWidth(175);
-
     bool showSendPanel = settings.value("Main/ShowSendPanel", true).toBool();
     ui->tableSimpleSender->setVisible(showSendPanel);
 
@@ -569,7 +567,10 @@ void MainWindow::writeSettings()
         settings.setValue("Main/BusColumn", ui->canFramesView->columnWidth(5));
         settings.setValue("Main/LengthColumn", ui->canFramesView->columnWidth(6));
         settings.setValue("Main/AsciiColumn", ui->canFramesView->columnWidth(7));
-        //settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
+
+        if(useHexAndDec)
+            settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
+
         settings.setValue("Main/SplitterMain", ui->splitterMain->saveState());
         settings.setValue("Main/SplitterLeft", ui->splitterLeft->saveState());
     }
@@ -1668,7 +1669,7 @@ Data Bytes: 88 10 00 13 BB 00 06 00
                     }
 
                     QString temp;
-                    if (sigs[j]->processAsText(*frame, temp))
+                    if (sigs[j]->processAsText(*frame, temp, false))
                     {
                         builderString.append(temp);
                         builderString.append(",");
