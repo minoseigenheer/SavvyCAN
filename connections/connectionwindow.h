@@ -7,12 +7,14 @@
 #include <QSerialPortInfo>
 #include <QDebug>
 #include <QSettings>
+#include <QMap>
 #include <QTimer>
 #include <QItemSelection>
 #include <QCanBusDeviceInfo>
 #include <QUdpSocket>
 #include "canconnectionmodel.h"
 #include "connections/canconnection.h"
+#include "canbus.h"
 
 
 class CANConnectionModel;
@@ -67,6 +69,8 @@ private:
 
     CANConnection* create(CANCon::type pTye, QString pPortName, QString pDriver, int pSerialSpeed, int pBusSpeed, bool pCanFd, int pDataRate, bool pListenOnly = false, bool pActive = true);
     void populateBusDetails(int offset);
+    QMap<int, CANBus> m_pendingBus;
+    void flushPendingBusFromUI(int offset);
     void loadConnections();
     void saveConnections();
     void showEvent(QShowEvent *);
