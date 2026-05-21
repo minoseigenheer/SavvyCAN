@@ -14,6 +14,7 @@
 #include <QTimer>
 #include <QHBoxLayout>
 #include <QBoxLayout>
+#include <QTimer>
 /*
 Some notes on things I'd like to put into the program but haven't put on github (yet)
 
@@ -264,6 +265,19 @@ MainWindow::MainWindow(QWidget *parent) :
         // Insert container at index 0 (tableSimpleSender slides to index 1 automatically)
         ui->splitterLeft->insertWidget(0, container);
     }
+    // Restore or default splitterLeft AFTER the widget reorganization above and after
+    // the window has real geometry — QTimer::singleShot(0) defers to first event loop tick.
+    QTimer::singleShot(0, this, [this]() {
+        QSettings s;
+        QByteArray state = s.value("Main/SplitterLeft").toByteArray();
+        if (!state.isEmpty()) {
+            ui->splitterLeft->restoreState(state);
+        } else {
+            int h = ui->splitterLeft->height();
+            if (h > 0)
+                ui->splitterLeft->setSizes({h * 3 / 4, h / 4}); // 75% frame table, 25% send panel
+        }
+    });
 
     ui->leSearchFilter->setClearButtonEnabled(true);
     connect(model, &CommFrameModel::highlightChanged, this, [this]() {
@@ -520,17 +534,14 @@ void MainWindow::readSettings()
             ui->splitterMain->restoreState(splitterMainState);
         else
             ui->splitterMain->setSizes({750, 250});
-        QByteArray splitterLeftState = settings.value("Main/SplitterLeft").toByteArray();
-        if (!splitterLeftState.isEmpty())
-            ui->splitterLeft->restoreState(splitterLeftState);
-        else
-            ui->splitterLeft->setSizes({800, 200}); // 80% frame table, 20% send panel
+
+        // splitterLeft is restored/defaulted after widget reorganization (see constructor)
     }
     else
     {
         // No saved positions – apply default proportions
         ui->splitterMain->setSizes({750, 250}); // 75% left, 25% right panel
-        ui->splitterLeft->setSizes({800, 200}); // 80% frame table, 20% send panel
+        // splitterLeft is defaulted after widget reorganization (see constructor)
     }
 
     if (settings.value("Main/AutoScroll", false).toBool())
@@ -657,7 +668,6 @@ void MainWindow::writeSettings()
         if(useHexAndDec)
             settings.setValue("Main/DataColumn", ui->canFramesView->columnWidth(8));
         settings.setValue("Main/SplitterMain", ui->splitterMain->saveState());
-        settings.setValue("Main/SplitterLeft", ui->splitterLeft->saveState());
     }
     // Always save splitterLeft so send-panel height is restored on next launch
     settings.setValue("Main/SplitterLeft", ui->splitterLeft->saveState());
