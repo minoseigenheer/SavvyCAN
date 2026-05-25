@@ -65,7 +65,7 @@ private:
 
 protected:
     QCanBusDevice     *mDev_p = nullptr;
-    QTimer             mTimer;
+    QTimer            *mTimer = nullptr;
     int                mNoFrameSeconds = 0;       // timer ticks (1 s each) since last real frame while CONNECTED
     bool               mHadFrameSinceConnect = false; // true once a valid frame arrives after connecting
     int                mReconnectAttempts = 0;    // consecutive connectDevice() calls in NOT_CONNECTED state
