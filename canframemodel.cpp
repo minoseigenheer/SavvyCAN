@@ -341,6 +341,7 @@ uint64_t CommFrameModel::getCommFrameVal(QVector<CommFrame> *frames, int row, Co
         return static_cast<uint64_t>(frame.getBus());
     case Column::Length:
         return static_cast<uint64_t>(frame.payload().length());
+    case Column::DataDec:
     case Column::ASCII: //sort both the same for now
     case Column::Data:
         for (int i = 0; i < std::min(static_cast<int>(frame.payload().length()), 8); i++)
@@ -718,7 +719,7 @@ QVariant CommFrameModel::data(const QModelIndex &index, int role) const
                     }
                     for (int j = 0; j < msg->sigHandler->getCount(); j++)
                     {                        
-                        DBC_SIGNAL* sig = msg->sigHandler->findSignalByIdx(j);
+                        DBC_SIGNAL* sig = sigs[j];
                         tempString.append(displayValues[*sig]);
                         tempString.append("\n");
 
@@ -736,7 +737,7 @@ QVariant CommFrameModel::data(const QModelIndex &index, int role) const
                     dataLen = 0;
                     //if (useHexMode) tempString.append("0x ");
 
-                if (thisFrame.frameType() == QCanBusFrame::RemoteRequestFrame) {
+                if (thisFrame.frameType() == CommFrame::RemoteRequestFrame) {
                         return tempString;
                     }
                 for (int i = 0; i < dataLen; i++) {
