@@ -209,7 +209,7 @@ void DBC_SIGNAL::processAvailableSignals(const CommFrame &frame, std::map<DBC_SI
 
     foreach (DBC_SIGNAL *sig, multiplexedChildren)
     {
-        if ( (val >= sig->multiplexLowValue) && (val <= sig->multiplexHighValue) )
+        if (sig->isValueMatchingMultiplex(val))
         {
             qDebug() << "Found match for multiplex value range - " << sig->name;
             QString sigString;
