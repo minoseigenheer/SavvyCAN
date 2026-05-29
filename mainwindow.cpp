@@ -436,7 +436,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
     if ((obj == ui->listBusFilters || obj == ui->listDirFilters || obj == ui->listLengthFilters)
         && event->type() == QEvent::Resize) {
         QListWidget *list = qobject_cast<QListWidget*>(obj);
-        QTimer::singleShot(0, this, [this, list]() {
+        QTimer::singleShot(0, this, [list]() {
             if (list->count() > 0) {
                 QRect r = list->visualItemRect(list->item(list->count() - 1));
                 int h = r.bottom() + 1 + 2 * list->frameWidth();
