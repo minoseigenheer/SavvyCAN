@@ -979,11 +979,13 @@ void CommFrameModel::addFrame(const CommFrame& frame, bool autoRefresh = false)
         try
         {
             frames.append(tempFrame);
-    }
+            m_idCounts[(int)tempFrame.frameId()]++;
+
             if (passesFrameFilters(tempFrame))
             {
                 bool show = true;
                 if (changingOnly)
+                {
                     quint64 ckey = changingKey(tempFrame);
                     if (lastSeenData.contains(ckey) && lastSeenData[ckey] == tempFrame.payload())
                         show = false;
@@ -1139,15 +1141,6 @@ void CommFrameModel::sendRefresh()
             }
             tempContainer = changingFiltered;
             lastSeenData = newSeen;
-        if (!m_searchFilter.isEmpty()) {
-            QVector<CommFrame> searched;
-            searched.reserve(tempContainer.count());
-            for (int i = 0; i < tempContainer.count(); ++i) {
-                QString idStr = QString::number(tempContainer[i].frameId(), 16).toUpper();
-                if (idStr.contains(m_searchFilter, Qt::CaseInsensitive))
-                    searched.append(tempContainer[i]);
-            }
-            tempContainer = searched;
         }
 
         // Rebuild per-ID count cache from all frames (not just filtered)
