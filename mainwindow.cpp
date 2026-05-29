@@ -1954,7 +1954,12 @@ void MainWindow::showGraphingWindow()
         }
     }
 */
-    lastGraphingWindow = new GraphingWindow(model->getListReference(), model->getFilteredListReference());
+    const QVector<CommFrame> *frames;
+    if (!useFiltered)
+        frames = model->getListReference();
+    else
+        frames = model->getFilteredListReference();
+    lastGraphingWindow = new GraphingWindow(frames);
     graphWindows.append(lastGraphingWindow);
 
     connect(lastGraphingWindow, SIGNAL(sendCenterTimeID(uint32_t,double)), this, SLOT(gotCenterTimeID(uint32_t,double)));
