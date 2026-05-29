@@ -5,7 +5,9 @@
 #include "can_structs.h"
 #include "dbc/dbchandler.h"
 
+#include <QAction>
 #include <QDialog>
+#include <QMenuBar>
 
 namespace Ui {
 class GraphingWindow;
@@ -105,6 +107,13 @@ private:
     bool useOpenGL;
     bool followGraphEnd;
 
+    QAction *actEditSelected;
+    QAction *actRemoveSelected;
+    QAction *actRemoveAll;
+    QAction *actRescale;
+    QAction *actFollowEnd;
+
+    void setupMenuBar();
     void showParamsDialog(int idx);
     void closeEvent(QCloseEvent *event);
     void readSettings();
