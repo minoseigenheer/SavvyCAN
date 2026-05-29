@@ -162,9 +162,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->cbAutoScroll, &QAbstractButton::toggled, this, &MainWindow::interpretAutoScroll);
     connect(ui->cbInterpret, &QAbstractButton::toggled, this, &MainWindow::interpretToggled);
     connect(ui->cbOverwrite, &QAbstractButton::toggled, this, &MainWindow::overwriteToggled);
+    connect(ui->cbChangingOnly, &QAbstractButton::toggled, this, &MainWindow::changingOnlyToggled);
     connect(ui->cbPersistentFilters, &QAbstractButton::toggled, this, &MainWindow::presistentFiltersToggled);
     connect(ui->listFilters, &QListWidget::itemChanged, this, &MainWindow::filterListItemChanged);
     connect(ui->listBusFilters, &QListWidget::itemChanged, this, &MainWindow::busFilterListItemChanged);
+    connect(ui->listDirFilters, &QListWidget::itemChanged, this, &MainWindow::dirFilterListItemChanged);
+    connect(ui->listLengthFilters, &QListWidget::itemChanged, this, &MainWindow::lengthFilterListItemChanged);
 
     connect(ui->btnCaptureToggle, &QAbstractButton::clicked, this, &MainWindow::toggleCapture);
     connect(ui->btnClearFrames, &QAbstractButton::clicked, this, &MainWindow::clearFrames);
@@ -204,9 +207,28 @@ MainWindow::MainWindow(QWidget *parent) :
     // Prevent annoying accidental horizontal scrolling when filter list is populated with long interpreted message names
     ui->listFilters->horizontalScrollBar()->setEnabled(false);
 
+    // Wrapping filter lists: items reflow on resize and height is recalculated via event filter
+    ui->listBusFilters->setWrapping(true);
+    ui->listBusFilters->setResizeMode(QListView::Adjust);
+    ui->listDirFilters->setWrapping(true);
+    ui->listDirFilters->setResizeMode(QListView::Adjust);
+    ui->listLengthFilters->setWrapping(true);
+    ui->listLengthFilters->setResizeMode(QListView::Adjust);
+    ui->listBusFilters->installEventFilter(this);
+    ui->listDirFilters->installEventFilter(this);
+    ui->listLengthFilters->installEventFilter(this);
+
     // Highlight item delegate — shows clickable arrow indicator in the filter list
     m_highlightDelegate = new HighlightItemDelegate(model, this);
     ui->listFilters->setItemDelegate(m_highlightDelegate);
+
+    // Apply highlight enabled state: readSettings() ran before the delegate was created,
+    // so the if(m_highlightDelegate) guard skipped the setEnabled() call. Apply it now.
+    {
+        QSettings s;
+        bool hlEnabled = s.value("Main/EnableFrameHighlight", true).toBool();
+        m_highlightDelegate->setEnabled(hlEnabled);
+    }
 
     // Highlight overview bar — narrow stripe bar next to the frame table only (not the sender below).
     // verticalLayout_3 contains [canFramesView, tableSimpleSender].
@@ -410,6 +432,19 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
+    // Recalculate height of wrapping filter lists when they are resized (panel drag etc.)
+    if ((obj == ui->listBusFilters || obj == ui->listDirFilters || obj == ui->listLengthFilters)
+        && event->type() == QEvent::Resize) {
+        QListWidget *list = qobject_cast<QListWidget*>(obj);
+        QTimer::singleShot(0, this, [this, list]() {
+            if (list->count() > 0) {
+                QRect r = list->visualItemRect(list->item(list->count() - 1));
+                int h = r.bottom() + 1 + 2 * list->frameWidth();
+                if (h > 0 && h != list->height()) list->setFixedHeight(h);
+            }
+        });
+        return false;
+    }
     if (event->type() == QEvent::KeyRelease) {
         QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
         switch (keyEvent->key())
@@ -495,6 +530,14 @@ void MainWindow::readSettings()
         model->setOverwriteMode(false);
         rowExpansionActive = false;
     }
+
+    if (settings.value("Main/ChangingOnly", false).toBool())
+    {
+        ui->cbChangingOnly->setChecked(Qt::Checked);
+        model->setChangingOnly(true);
+    }
+    else
+        model->setChangingOnly(false);
 
     if (settings.value("Main/PersistentFilters", false).toBool())
     {
@@ -1084,6 +1127,13 @@ void MainWindow::overwriteToggled(bool state)
     }
 }
 
+void MainWindow::changingOnlyToggled(bool state)
+{
+    QSettings settings;
+    settings.setValue("Main/ChangingOnly", state);
+    model->setChangingOnly(state);
+}
+
 void MainWindow::presistentFiltersToggled(bool state)
 {    
     QSettings settings;
@@ -1112,6 +1162,8 @@ void MainWindow::updateFilterList()
 
     ui->listFilters->clear();
     ui->listBusFilters->clear();
+    ui->listDirFilters->clear();
+    ui->listLengthFilters->clear();
 
     if (filters->isEmpty()) return;
 
@@ -1121,13 +1173,55 @@ void MainWindow::updateFilterList()
         /*QListWidgetItem *thisItem = */FilterUtility::createCheckableFilterItem(filterIter.key(), filterIter.value(), ui->listFilters);
     }
 
-    if (busFilters->isEmpty()) return;
-
-    for (filterIter = busFilters->begin(); filterIter != busFilters->end(); ++filterIter)
+    if (!busFilters->isEmpty())
     {
-        /*QListWidgetItem *thisItem = */ FilterUtility::createCheckableBusFilterItem(filterIter.key(), filterIter.value(), ui->listBusFilters);
+        for (filterIter = busFilters->begin(); filterIter != busFilters->end(); ++filterIter)
+        {
+            FilterUtility::createCheckableBusFilterItem(filterIter.key(), filterIter.value(), ui->listBusFilters);
+        }
     }
+
+    // Direction filters
+    const QMap<int, bool> *dirFilters = model->getDirFiltersReference();
+    if (dirFilters && !dirFilters->isEmpty())
+    {
+        for (filterIter = dirFilters->begin(); filterIter != dirFilters->end(); ++filterIter)
+        {
+            QString label = (filterIter.key() == 1) ? tr("Rx") : tr("Tx");
+            QListWidgetItem *item = new QListWidgetItem(label, ui->listDirFilters);
+            item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
+            item->setCheckState(filterIter.value() ? Qt::Checked : Qt::Unchecked);
+            item->setData(Qt::UserRole, filterIter.key());
+        }
+    }
+
+    // Length filters
+    const QMap<int, bool> *lengthFilters = model->getLengthFiltersReference();
+    if (lengthFilters && !lengthFilters->isEmpty())
+    {
+        for (filterIter = lengthFilters->begin(); filterIter != lengthFilters->end(); ++filterIter)
+        {
+            FilterUtility::createCheckableBusFilterItem(filterIter.key(), filterIter.value(), ui->listLengthFilters);
+        }
+    }
+
+    // Adjust height of the wrapping filter lists to fit their items (deferred so layout is done first)
+    QTimer::singleShot(0, this, [this]() {
+        auto fitH = [](QListWidget *list) {
+            if (list->count() == 0) { list->setFixedHeight(0); return; }
+            QRect r = list->visualItemRect(list->item(list->count() - 1));
+            int h = r.bottom() + 1 + 2 * list->frameWidth();
+            if (h > 0) list->setFixedHeight(h);
+        };
+        fitH(ui->listBusFilters);
+        fitH(ui->listDirFilters);
+        fitH(ui->listLengthFilters);
+    });
+
     inhibitFilterUpdate = false;
+
+    // Re-apply any active search filter text so items stay hidden/shown after the list is repopulated
+    onSearchFilterChanged(ui->leSearchFilter->text());
 }
 
 void MainWindow::filterListItemChanged(QListWidgetItem *item)
@@ -1148,17 +1242,40 @@ void MainWindow::filterListItemChanged(QListWidgetItem *item)
 void MainWindow::busFilterListItemChanged(QListWidgetItem *item)
 {
     if (inhibitFilterUpdate) return;
-    //qDebug() << item->text();
 
-    // strip away possible filter label
     int ID = FilterUtility::getIdAsInt(item);
-    bool isSet = false;
-    if (item->checkState() == Qt::Checked) isSet = true;
+    bool isSet = (item->checkState() == Qt::Checked);
 
     model->setBusFilterState(ID, isSet);
 
     manageRowExpansion();
 }
+
+void MainWindow::dirFilterListItemChanged(QListWidgetItem *item)
+{
+    if (inhibitFilterUpdate) return;
+
+    int dir = item->data(Qt::UserRole).toInt();
+    bool isSet = (item->checkState() == Qt::Checked);
+
+    model->setDirFilterState(dir, isSet);
+
+    manageRowExpansion();
+}
+
+void MainWindow::lengthFilterListItemChanged(QListWidgetItem *item)
+{
+    if (inhibitFilterUpdate) return;
+
+    int len = FilterUtility::getIdAsInt(item);
+    bool isSet = (item->checkState() == Qt::Checked);
+
+    model->setLengthFilterState(len, isSet);
+
+    manageRowExpansion();
+}
+
+
 
 void MainWindow::filterSetAll()
 {
@@ -1837,7 +1954,7 @@ void MainWindow::showGraphingWindow()
         }
     }
 */
-    lastGraphingWindow = new GraphingWindow(model->getListReference());
+    lastGraphingWindow = new GraphingWindow(model->getListReference(), model->getFilteredListReference());
     graphWindows.append(lastGraphingWindow);
 
     connect(lastGraphingWindow, SIGNAL(sendCenterTimeID(uint32_t,double)), this, SLOT(gotCenterTimeID(uint32_t,double)));
