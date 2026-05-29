@@ -7,6 +7,7 @@
 
 #include <QAction>
 #include <QDialog>
+#include <QHBoxLayout>
 #include <QMenuBar>
 
 namespace Ui {
@@ -28,6 +29,7 @@ public:
     int stride;
     int strideSoFar;
     int bus;
+    int frameLen;
     QColor lineColor;
     QColor fillColor;
     int lineWidth;
