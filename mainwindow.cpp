@@ -242,9 +242,28 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->leSearchFilter->setClearButtonEnabled(true);
     connect(ui->leSearchFilter, &QLineEdit::textChanged, this, &MainWindow::onSearchFilterChanged);
 
+    // Wrapping filter lists: items reflow on resize and height is recalculated via event filter
+    ui->listBusFilters->setWrapping(true);
+    ui->listBusFilters->setResizeMode(QListView::Adjust);
+    ui->listDirFilters->setWrapping(true);
+    ui->listDirFilters->setResizeMode(QListView::Adjust);
+    ui->listLengthFilters->setWrapping(true);
+    ui->listLengthFilters->setResizeMode(QListView::Adjust);
+    ui->listBusFilters->installEventFilter(this);
+    ui->listDirFilters->installEventFilter(this);
+    ui->listLengthFilters->installEventFilter(this);
+
     // Highlight item delegate — shows clickable arrow indicator in the filter list
     m_highlightDelegate = new HighlightItemDelegate(model, this);
     ui->listFilters->setItemDelegate(m_highlightDelegate);
+
+    // Apply highlight enabled state: readSettings() ran before the delegate was created,
+    // so the if(m_highlightDelegate) guard skipped the setEnabled() call. Apply it now.
+    {
+        QSettings s;
+        bool hlEnabled = s.value("Main/EnableFrameHighlight", true).toBool();
+        m_highlightDelegate->setEnabled(hlEnabled);
+    }
 
     // Highlight overview bar — narrow stripe bar next to the frame table only (not the sender below).
     // verticalLayout_3 contains [canFramesView, tableSimpleSender].
@@ -559,6 +578,14 @@ void MainWindow::readSettings()
         model->setOverwriteMode(false);
         rowExpansionActive = false;
     }
+
+    if (settings.value("Main/ChangingOnly", false).toBool())
+    {
+        ui->cbChangingOnly->setChecked(Qt::Checked);
+        model->setChangingOnly(true);
+    }
+    else
+        model->setChangingOnly(false);
 
     if (settings.value("Main/PersistentFilters", false).toBool())
     {
@@ -2022,7 +2049,7 @@ void MainWindow::showGraphingWindow()
         }
     }
 */
-    lastGraphingWindow = new GraphingWindow(model->getListReference());
+    lastGraphingWindow = new GraphingWindow(model->getListReference(), model->getFilteredListReference());
     graphWindows.append(lastGraphingWindow);
 
     connect(lastGraphingWindow, SIGNAL(sendCenterTimeID(uint32_t,double)), this, SLOT(gotCenterTimeID(uint32_t,double)));
