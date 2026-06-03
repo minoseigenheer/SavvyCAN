@@ -208,6 +208,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Prevent annoying accidental horizontal scrolling when filter list is populated with long interpreted message names
     ui->listFilters->horizontalScrollBar()->setEnabled(false);
+    // Allow drag-select and Shift/Ctrl+click multi-selection in the ID filter list
+    ui->listFilters->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    ui->listFilters->installEventFilter(this);
 
     // Wrapping filter lists: items reflow on resize and height is recalculated via event filter
     ui->listBusFilters->setWrapping(true);
@@ -434,6 +437,28 @@ void MainWindow::closeEvent(QCloseEvent *event)
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
+    // Space key on the ID filter list: toggle checkbox state for all selected items
+    if (obj == ui->listFilters && event->type() == QEvent::KeyPress) {
+        QKeyEvent *ke = static_cast<QKeyEvent*>(event);
+        if (ke->key() == Qt::Key_Space) {
+            QList<QListWidgetItem*> selected = ui->listFilters->selectedItems();
+            if (!selected.isEmpty()) {
+                Qt::CheckState newState = (selected.first()->checkState() == Qt::Checked)
+                                          ? Qt::Unchecked : Qt::Checked;
+                inhibitFilterUpdate = true;
+                for (QListWidgetItem *item : selected)
+                    item->setCheckState(newState);
+                inhibitFilterUpdate = false;
+                QList<QPair<int,bool>> updates;
+                updates.reserve(selected.size());
+                for (QListWidgetItem *item : selected)
+                    updates.append({FilterUtility::getIdAsInt(item), newState == Qt::Checked});
+                model->setFilterStatesBatch(updates);
+                manageRowExpansion();
+                return true;
+            }
+        }
+    }
     // Recalculate height of wrapping filter lists when they are resized (panel drag etc.)
     if ((obj == ui->listBusFilters || obj == ui->listDirFilters || obj == ui->listLengthFilters)
         && event->type() == QEvent::Resize) {
@@ -2058,9 +2083,13 @@ void MainWindow::showSearchWindow()
 {
     if (!searchWindow)
     {
-        searchWindow = new SearchWindow(model->getListReference(), dbcHandler);
+        searchWindow = new SearchWindow(model->getFilteredListReference(), dbcHandler);
         connect(searchWindow, &SearchWindow::jumpToFrameIndex, this, &MainWindow::jumpToSearchFrame);
         connect(this, &MainWindow::framesUpdated, searchWindow, &SearchWindow::updatedFrames);
+        // Clear stale results whenever the filter changes (sendRefresh rebuilds filteredFrames)
+        connect(model, &QAbstractItemModel::modelReset, searchWindow, [this]() {
+            searchWindow->updatedFrames(0);
+        });
     }
     searchWindow->show();
     searchWindow->raise();
@@ -2068,20 +2097,18 @@ void MainWindow::showSearchWindow()
 
 void MainWindow::jumpToSearchFrame(int frameIndex)
 {
-    if (!model || frameIndex < 0 || frameIndex >= model->getListReference()->size())
+    if (!model || frameIndex < 0 || frameIndex >= model->getFilteredListReference()->size())
         return;
 
-    // The main table uses a proxy model; find the corresponding proxy row
+    // frameIndex is a row in CommFrameModel (filteredFrames); map through the
+    // sort proxy so the view scrolls to the correct visible row.
     QAbstractProxyModel *proxy = qobject_cast<QAbstractProxyModel *>(ui->canFramesView->model());
-    if (proxy)
+    QModelIndex srcIndex = model->index(frameIndex, 0);
+    QModelIndex target = proxy ? proxy->mapFromSource(srcIndex) : srcIndex;
+    if (target.isValid())
     {
-        QModelIndex srcIndex = model->index(frameIndex, 0);
-        QModelIndex proxyIndex = proxy->mapFromSource(srcIndex);
-        if (proxyIndex.isValid())
-        {
-            ui->canFramesView->scrollTo(proxyIndex, QAbstractItemView::PositionAtCenter);
-            ui->canFramesView->setCurrentIndex(proxyIndex);
-        }
+        ui->canFramesView->scrollTo(target, QAbstractItemView::PositionAtCenter);
+        ui->canFramesView->setCurrentIndex(target);
     }
 }
 
