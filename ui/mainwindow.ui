@@ -503,6 +503,8 @@
     <addaction name="actionSave_Decoded_Frames"/>
     <addaction name="actionSave_Decoded_Frames_CSV"/>
     <addaction name="separator"/>
+    <addaction name="actionCrop_Log"/>
+    <addaction name="separator"/>
     <addaction name="actionPreferences"/>
     <addaction name="separator"/>
     <addaction name="actionExit_Application"/>
@@ -715,6 +717,11 @@
   <action name="actionFrame_Search">
    <property name="text">
     <string>Frame Search</string>
+   </property>
+  </action>
+  <action name="actionCrop_Log">
+   <property name="text">
+    <string>Crop Log to Frame Range</string>
    </property>
   </action>
  </widget>
