@@ -21,7 +21,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_main">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_top">
+     <layout class="QHBoxLayout" name="horizontalLayout_top">
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_left">
        <item>
@@ -246,7 +246,7 @@
           <item>
            <layout class="QHBoxLayout" name="hboxValueMode">
             <item>
-             <widget class="QRadioButton" name="rbValueNone">
+               <widget class="QRadioButton" name="rbValueNone">
               <property name="text">
                <string>No filter</string>
               </property>
@@ -409,20 +409,20 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="btnPrev">
-       <property name="text">
-        <string>&lt; Previous</string>
-       </property>
+            <widget class="QPushButton" name="btnPrev">
+          <property name="text">
+           <string>&lt; Previous</string>
+          </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="btnNext">
-       <property name="text">
-        <string>Next &gt;</string>
-       </property>
+            <widget class="QPushButton" name="btnNext">
+          <property name="text">
+           <string>Next &gt;</string>
+          </property>
        <property name="enabled">
         <bool>false</bool>
        </property>

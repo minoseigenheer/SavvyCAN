@@ -363,7 +363,6 @@ void SearchWindow::performSearch()
         // ── Value filter ───────────────────────────────────────
         // Skip entirely when "No filter" is selected
         if (noValueFilter) { matchingIndices.append(i); continue; }
-
         // Only apply value filter when there's at least one data byte covered
         if (startBit / 8 < f.payload().size())
         {
