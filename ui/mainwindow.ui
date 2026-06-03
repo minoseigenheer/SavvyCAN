@@ -724,6 +724,11 @@
     <string>Frame Search</string>
    </property>
   </action>
+  <action name="actionCrop_Log">
+   <property name="text">
+    <string>Crop Log to Frame Range</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>

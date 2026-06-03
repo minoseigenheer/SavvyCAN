@@ -15,6 +15,9 @@
 #include <QHBoxLayout>
 #include <QBoxLayout>
 #include <QTimer>
+#include <QSpinBox>
+#include <QFormLayout>
+#include <QDialogButtonBox>
 /*
 Some notes on things I'd like to put into the program but haven't put on github (yet)
 
@@ -1496,18 +1499,48 @@ void MainWindow::normalizeTiming()
 void MainWindow::handleCropLog()
 {
     const QVector<CommFrame> *src = model->getListReference();
-    if (src->isEmpty())
+    int totalFrames = src->count();
+
+    if (totalFrames == 0)
     {
         QMessageBox::information(this, tr("Crop Log"), tr("No frames loaded."));
         return;
     }
 
-    CropLogDialog dlg(src, this);
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("Crop Log to Frame Range"));
+    QFormLayout form(&dlg);
+
+    QSpinBox *spinStart = new QSpinBox(&dlg);
+    spinStart->setMinimum(1);
+    spinStart->setMaximum(totalFrames);
+    spinStart->setValue(1);
+    form.addRow(tr("Start frame (1 = first):"), spinStart);
+
+    QSpinBox *spinEnd = new QSpinBox(&dlg);
+    spinEnd->setMinimum(1);
+    spinEnd->setMaximum(totalFrames);
+    spinEnd->setValue(totalFrames);
+    form.addRow(tr("End frame (%1 = last):").arg(totalFrames), spinEnd);
+
+    QDialogButtonBox *buttons = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, &dlg);
+    form.addRow(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
     if (dlg.exec() != QDialog::Accepted)
         return;
 
-    int startIdx = dlg.startIndex();
-    int endIdx   = dlg.endIndex();
+    int startIdx = spinStart->value() - 1; // convert to 0-based
+    int endIdx   = spinEnd->value() - 1;
+
+    if (startIdx > endIdx)
+    {
+        QMessageBox::warning(this, tr("Crop Log"), tr("Start frame must not be greater than end frame."));
+        return;
+    }
+
     QVector<CommFrame> cropped = src->mid(startIdx, endIdx - startIdx + 1);
 
     model->clearFrames();
