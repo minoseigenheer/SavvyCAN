@@ -471,6 +471,7 @@
     <addaction name="actionCapture_Bisector"/>
     <addaction name="actionSignal_Viewer"/>
     <addaction name="actionTemporal_Graph"/>
+    <addaction name="actionFrame_Search"/>
    </widget>
    <widget class="QMenu" name="menuSend_Frames">
     <property name="title">
@@ -709,6 +710,11 @@
   <action name="actionCAN_Bridge">
    <property name="text">
     <string>CAN Bridge</string>
+   </property>
+  </action>
+  <action name="actionFrame_Search">
+   <property name="text">
+    <string>Frame Search</string>
    </property>
   </action>
  </widget>
