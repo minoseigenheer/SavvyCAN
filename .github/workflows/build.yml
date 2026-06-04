@@ -170,17 +170,33 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        run: |
+          git remote add upstream https://github.com/collin80/SavvyCAN.git || true
+          git fetch upstream QT6WIP
+          {
+            echo "## Commits"
+            echo ""
+            echo "All commits since branching from upstream QT6WIP:"
+            echo ""
+            git log upstream/QT6WIP..HEAD --pretty=format:"- %h: %s" --no-merges
+          } > release_notes.md
 
       - uses: actions/download-artifact@v4.1.7
 
-      - name: Display structure of downloaded files
+      - name: Package Windows
         run: zip -r SavvyCAN-Windows_x64_CIBuild.zip SavvyCAN-Windows_x64
-      - uses: "marvinpinto/action-automatic-releases@latest"
+
+      - uses: softprops/action-gh-release@v2
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "continuous-QT6"
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          tag_name: "continuous-QT6"
           prerelease: true
-          title: "QT6 Development Build"
+          name: "QT6 Development Build"
+          body_path: release_notes.md
           files: |
             SavvyCAN-Linux_x64.AppImage/SavvyCAN-*x86_64.AppImage
             SavvyCAN-Windows_x64_CIBuild.zip
