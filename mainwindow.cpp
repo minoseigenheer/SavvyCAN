@@ -15,9 +15,6 @@
 #include <QHBoxLayout>
 #include <QBoxLayout>
 #include <QTimer>
-#include <QSpinBox>
-#include <QFormLayout>
-#include <QDialogButtonBox>
 /*
 Some notes on things I'd like to put into the program but haven't put on github (yet)
 
@@ -741,50 +738,20 @@ void MainWindow::onSearchFilterChanged(const QString &text)
 
 void MainWindow::clearAllHighlights()
 {
-    model->clearAllHighlights();
-    // highlightChanged signal will trigger viewport()->update() via the connection above
-}
-
-void MainWindow::processSenderCellChange(int line, int col)
-{
-    qDebug() << "processSenderCellChange";
-    FrameSendData *tempData;
-    QStringList tokens;
-    int tempVal;
-
-    int numBuses = CANConManager::getInstance()->getNumBuses();
-    QByteArray arr;
-
-    tempData = frameSender->getSendRecordRef(line);
-
-    if (!tempData)
+    const QVector<CommFrame> *src = model->getListReference();
+    if (src->isEmpty())
     {
-        qDebug() << "Need to set up a new entry in senders";
-        FrameSendData dat;
-        dat.enabled = false;
-        dat.count = 0;
-        dat.setFrameCount(0);
-        dat.setBus(0);
-        frameSender->addSendRecord(dat);
-        tempData = frameSender->getSendRecordRef(line);
-    }
-
-    if (!tempData)
-    {
-        qDebug() << "No data to modify in processSenderCellChange. This is a bug!";
+        QMessageBox::information(this, tr("Crop Log"), tr("No frames loaded."));
         return;
     }
 
-    switch (col)
-    {
-    case SIMP_COL::SC_COL_EN: //Enable check box
-        if (ui->tableSimpleSender->item(line, 0)->checkState() == Qt::Checked)
-        {
-            tempData->enabled = true;
-        }
-        else tempData->enabled = false;
-        qDebug() << "Setting enabled to " << tempData->enabled;
-        break;
+    CropLogDialog dlg(src, this);
+        return;
+    }
+
+    int startIdx = dlg.startIndex();
+    int endIdx   = dlg.endIndex();
+    QVector<CommFrame> cropped = src->mid(startIdx, endIdx - startIdx + 1);
     case SIMP_COL::SC_COL_BUS: //Bus designation
         tempVal = Utility::ParseStringToNum(ui->tableSimpleSender->item(line, SIMP_COL::SC_COL_BUS)->text());
         if (tempVal < -1) tempVal = -1;
@@ -1499,48 +1466,18 @@ void MainWindow::normalizeTiming()
 void MainWindow::handleCropLog()
 {
     const QVector<CommFrame> *src = model->getListReference();
-    int totalFrames = src->count();
-
-    if (totalFrames == 0)
+    if (src->isEmpty())
     {
         QMessageBox::information(this, tr("Crop Log"), tr("No frames loaded."));
         return;
     }
 
-    QDialog dlg(this);
-    dlg.setWindowTitle(tr("Crop Log to Frame Range"));
-    QFormLayout form(&dlg);
-
-    QSpinBox *spinStart = new QSpinBox(&dlg);
-    spinStart->setMinimum(1);
-    spinStart->setMaximum(totalFrames);
-    spinStart->setValue(1);
-    form.addRow(tr("Start frame (1 = first):"), spinStart);
-
-    QSpinBox *spinEnd = new QSpinBox(&dlg);
-    spinEnd->setMinimum(1);
-    spinEnd->setMaximum(totalFrames);
-    spinEnd->setValue(totalFrames);
-    form.addRow(tr("End frame (%1 = last):").arg(totalFrames), spinEnd);
-
-    QDialogButtonBox *buttons = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, Qt::Horizontal, &dlg);
-    form.addRow(buttons);
-    connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-
+    CropLogDialog dlg(src, this);
     if (dlg.exec() != QDialog::Accepted)
         return;
 
-    int startIdx = spinStart->value() - 1; // convert to 0-based
-    int endIdx   = spinEnd->value() - 1;
-
-    if (startIdx > endIdx)
-    {
-        QMessageBox::warning(this, tr("Crop Log"), tr("Start frame must not be greater than end frame."));
-        return;
-    }
-
+    int startIdx = dlg.startIndex();
+    int endIdx   = dlg.endIndex();
     QVector<CommFrame> cropped = src->mid(startIdx, endIdx - startIdx + 1);
 
     model->clearFrames();
