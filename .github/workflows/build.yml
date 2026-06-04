@@ -182,7 +182,7 @@ jobs:
             echo ""
             echo "All commits since branching from upstream QT6WIP:"
             echo ""
-            git log upstream/QT6WIP..HEAD --pretty=format:"- %h: %s" --no-merges
+            git log upstream/QT6WIP..HEAD --pretty=format:"- %h (%ad): %s" --date=short --no-merges
           } > release_notes.md
 
       - uses: actions/download-artifact@v4.1.7
