@@ -34,11 +34,12 @@ jobs:
           wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
           chmod a+x linuxdeployqt-continuous-x86_64.AppImage
           ./linuxdeployqt-continuous-x86_64.AppImage ./SavvyCAN.desktop -appimage -extra-plugins=iconengines,platformthemes/libqgtk3.so,canbus
+          mv SavvyCAN-*x86_64.AppImage SavvyCAN-x86_64.AppImage
 
       - uses: actions/upload-artifact@v4
         with:
           name: SavvyCAN-Linux_x64.AppImage
-          path: SavvyCAN-*x86_64.AppImage
+          path: SavvyCAN-x86_64.AppImage
       
   buildmacos86:
     name: macOS x64
@@ -190,6 +191,11 @@ jobs:
       - name: Package Windows
         run: zip -r SavvyCAN-Windows_x64_CIBuild.zip SavvyCAN-Windows_x64
 
+      - name: Update release tag
+        run: |
+          git tag -f continuous-QT6
+          git push origin -f continuous-QT6
+
       - uses: softprops/action-gh-release@v2
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
@@ -198,7 +204,7 @@ jobs:
           name: "QT6 Development Build"
           body_path: release_notes.md
           files: |
-            SavvyCAN-Linux_x64.AppImage/SavvyCAN-*x86_64.AppImage
+            SavvyCAN-Linux_x64.AppImage/SavvyCAN-x86_64.AppImage
             SavvyCAN-Windows_x64_CIBuild.zip
             SavvyCAN-macOS_x64.dmg/SavvyCAN_x64.dmg
             SavvyCAN-macOS_ARM64.dmg/SavvyCAN_arm64.dmg
