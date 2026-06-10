@@ -178,12 +178,23 @@ jobs:
         run: |
           git remote add upstream https://github.com/collin80/SavvyCAN.git || true
           git fetch upstream QT6WIP
+
+          # New commits since last stable release
+          NEW_STABLE=$(git log QT6-v1.0..HEAD --pretty=format:"- %h (%ad): %s" --date=short --no-merges)
+          [ -z "$NEW_STABLE" ] && NEW_STABLE="_No new commits since QT6-v1.0_"
+
+          # All commits in this branch since upstream fork point
+          ALL_BRANCH=$(git log upstream/QT6WIP..HEAD --pretty=format:"- %h (%ad): %s" --date=short --no-merges)
+          [ -z "$ALL_BRANCH" ] && ALL_BRANCH="_No commits ahead of upstream_"
+
           {
-            echo "## Commits"
+            echo "## New commits since last stable release (QT6-v1.0)"
             echo ""
-            echo "All commits since branching from upstream QT6WIP:"
+            echo "$NEW_STABLE"
             echo ""
-            git log upstream/QT6WIP..HEAD --pretty=format:"- %h (%ad): %s" --date=short --no-merges
+            echo "## All commits in this branch"
+            echo ""
+            echo "$ALL_BRANCH"
           } > release_notes.md
 
       - uses: actions/download-artifact@v4.1.7
