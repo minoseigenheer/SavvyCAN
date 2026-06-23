@@ -80,6 +80,7 @@ private slots:
     void handleSaveFilters();
     void handleLoadFilters();
     void handleContinousLogging();
+    void handleContinousLoggingFiltered();
     void showGraphingWindow();
     void showFrameDataAnalysis();
     void clearFrames();
@@ -185,6 +186,7 @@ private:
     bool inhibitSenderChanged;
 
     bool continuousLogging;
+    bool continuousLoggingUseFilter;
     int continuousLogFlushCounter;
 
     //References to other windows we can display
