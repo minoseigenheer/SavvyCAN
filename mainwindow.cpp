@@ -740,20 +740,50 @@ void MainWindow::onSearchFilterChanged(const QString &text)
 
 void MainWindow::clearAllHighlights()
 {
-    const QVector<CommFrame> *src = model->getListReference();
-    if (src->isEmpty())
+    model->clearAllHighlights();
+    // highlightChanged signal will trigger viewport()->update() via the connection above
+}
+
+void MainWindow::processSenderCellChange(int line, int col)
+{
+    qDebug() << "processSenderCellChange";
+    FrameSendData *tempData;
+    QStringList tokens;
+    int tempVal;
+
+    int numBuses = CANConManager::getInstance()->getNumBuses();
+    QByteArray arr;
+
+    tempData = frameSender->getSendRecordRef(line);
+
+    if (!tempData)
     {
-        QMessageBox::information(this, tr("Crop Log"), tr("No frames loaded."));
+        qDebug() << "Need to set up a new entry in senders";
+        FrameSendData dat;
+        dat.enabled = false;
+        dat.count = 0;
+        dat.setFrameCount(0);
+        dat.setBus(0);
+        frameSender->addSendRecord(dat);
+        tempData = frameSender->getSendRecordRef(line);
+    }
+
+    if (!tempData)
+    {
+        qDebug() << "No data to modify in processSenderCellChange. This is a bug!";
         return;
     }
 
-    CropLogDialog dlg(src, this);
-        return;
-    }
-
-    int startIdx = dlg.startIndex();
-    int endIdx   = dlg.endIndex();
-    QVector<CommFrame> cropped = src->mid(startIdx, endIdx - startIdx + 1);
+    switch (col)
+    {
+    case SIMP_COL::SC_COL_EN: //Enable check box
+        if (ui->tableSimpleSender->item(line, 0)->checkState() == Qt::Checked)
+        {
+            tempData->enabled = true;
+        }
+        else tempData->enabled = false;
+        qDebug() << "Setting enabled to " << tempData->enabled;
+        break;
     case SIMP_COL::SC_COL_BUS: //Bus designation
         tempVal = Utility::ParseStringToNum(ui->tableSimpleSender->item(line, SIMP_COL::SC_COL_BUS)->text());
         if (tempVal < -1) tempVal = -1;

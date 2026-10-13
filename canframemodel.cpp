@@ -517,6 +517,9 @@ void CommFrameModel::recalcOverwrite()
     for (const CommFrame &f : filteredFrames)
         m_idCounts[(int)f.frameId()] = (int)f.getFrameCount();
 
+    mutex.unlock();
+}
+
 QVariant CommFrameModel::data(const QModelIndex &index, int role) const
 {
     QString tempString;
